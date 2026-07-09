@@ -1,0 +1,107 @@
+name: retrolog
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: retrolog_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www/html
+      - ./logs/apache:/var/log/apache2
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - retrolog_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mariadb:
+    image: mariadb:11
+    container_name: retrolog_mariadb
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-retrolog_root_password}
+      MARIADB_DATABASE: ${DB_DATABASE:-retrolog}
+      MARIADB_USER: ${DB_USERNAME:-retrolog}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-retrolog_dev_password}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - retrolog_mariadb_data:/var/lib/mysql
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - retrolog_network
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$${MARIADB_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:8-alpine
+    container_name: retrolog_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - retrolog_redis_data:/data
+    networks:
+      - retrolog_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: retrolog_phpmyadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USERNAME:-retrolog}
+      PMA_PASSWORD: ${DB_PASSWORD:-retrolog_dev_password}
+      UPLOAD_LIMIT: ${PHPMYADMIN_UPLOAD_LIMIT:-128M}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - retrolog_network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: retrolog_mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_WEB_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    networks:
+      - retrolog_network
+
+networks:
+  retrolog_network:
+    driver: bridge
+
+volumes:
+  retrolog_mariadb_data:
+  retrolog_redis_data:
