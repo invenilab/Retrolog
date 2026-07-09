@@ -1,0 +1,23 @@
+{
+  "name": "invenilab/retrolog",
+  "description": "RetroLog - plataforma fotografica social autoalojada inspirada en los fotologs clasicos.",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "RetroCore\\": "core/"
+    },
+    "files": [
+      "core/Support/helpers.php"
+    ]
+  },
+  "require": {
+    "php": ">=8.4"
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@php -r \"if (!file_exists('.env')) copy('.env.example', '.env');\""
+    ]
+  }
+}
