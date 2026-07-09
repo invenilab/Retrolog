@@ -1,6 +1,6 @@
 # RetroLog
 
-RetroLog es una plataforma fotografica social autoalojada inspirada en la experiencia clasica de los fotologs de finales de los 2000 y principios de los 2010.
+RetroLog es una plataforma fotografica social autoalojada inspirada en la experiencia clasica de los fotologs de finales de 2011 hasta su desaparición.
 
 ## Estado
 
